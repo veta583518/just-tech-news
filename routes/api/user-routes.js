@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { User, Post, Vote } = require("../../models");
+const { User, Post, Vote, Comment } = require("../../models/Index");
 
 // get all users
 router.get("/", (req, res) => {
@@ -12,6 +12,7 @@ router.get("/", (req, res) => {
       res.status(500).json(err);
     });
 });
+
 // get users by id
 router.get("/:id", (req, res) => {
   User.findOne({
@@ -23,6 +24,14 @@ router.get("/:id", (req, res) => {
       {
         model: Post,
         attributes: ["id", "title", "post_url", "created_at"],
+      },
+      {
+        model: Comment,
+        attributes: ["id", "comment_text", "created_at"],
+        include: {
+          model: Post,
+          attributes: ["title"],
+        },
       },
       {
         model: Post,
@@ -44,6 +53,7 @@ router.get("/:id", (req, res) => {
       res.status(500).json(err);
     });
 });
+
 // create a new user
 router.post("/", (req, res) => {
   // expects {username: 'Lernantino', email: 'lernantino@gmail.com', password: 'password1234'}
@@ -61,31 +71,27 @@ router.post("/", (req, res) => {
 
 // login route
 router.post("/login", (req, res) => {
-  // expects {username: 'Lernantino', email: 'lernantino@gmail.com', password: 'password1234'}
+  // expects {email: 'lernantino@gmail.com', password: 'password1234'}
   User.findOne({
     where: {
       email: req.body.email,
     },
   }).then((dbUserData) => {
     if (!dbUserData) {
-      res
-        .status(404)
-        .json({ message: "No user found with that email address!" });
+      res.status(400).json({ message: "No user with that email address!" });
       return;
     }
 
     // Verify user
     const validPassword = dbUserData.checkPassword(req.body.password);
+
     if (!validPassword) {
-      res.status(400).json({ message: "Incorrect password! " });
+      res.status(400).json({ message: "Incorrect password!" });
       return;
     }
+
     res.json({ user: dbUserData, message: "You are now logged in!" });
   });
-  // .catch((err) => {
-  //   console.log(err);
-  //   res.status(500).json(err);
-  // });
 });
 // update user by id
 router.put("/:id", (req, res) => {
@@ -129,5 +135,4 @@ router.delete("/:id", (req, res) => {
       res.status(500).json(err);
     });
 });
-
 module.exports = router;
